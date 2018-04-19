@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import microservices.book.gamification.client.MultiplicationResultAttemptClient;
+import microservices.book.gamification.client.dto.MultiplicationResultAttempt;
 import microservices.book.gamification.domain.Badge;
 import microservices.book.gamification.domain.BadgeCard;
 import microservices.book.gamification.domain.GameStats;
@@ -28,12 +30,15 @@ public class GameServiceTest {
 	@Mock
 	private ScoreCardRepository scoreCardRepository;
 	
+	@Mock
+	private MultiplicationResultAttemptClient attemptClient;
+	
 	private GameService gameService;
 	
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		gameService = new GameServiceImpl(badgeCardRepository, scoreCardRepository);
+		gameService = new GameServiceImpl(badgeCardRepository, scoreCardRepository, attemptClient);
 	}
 	
 	@Test
@@ -50,7 +55,6 @@ public class GameServiceTest {
                 .willReturn(Collections.singletonList(scoreCard));
         given(badgeCardRepository.findByUserIdOrderByBadgeTimestampDesc(userId))
                 .willReturn(Collections.emptyList());
-
 
         // when
         GameStats iteration = gameService.newAttemptForUser(userId, attemptId, true);
@@ -75,8 +79,7 @@ public class GameServiceTest {
         // the first won badge is already there
         given(badgeCardRepository.findByUserIdOrderByBadgeTimestampDesc(userId))
                 .willReturn(Collections.singletonList(firstWonBadge));
-
-
+        
         // when
         GameStats iteration = gameService.newAttemptForUser(userId, attemptId, true);
 
@@ -84,6 +87,25 @@ public class GameServiceTest {
         assertThat(iteration.getScore()).isEqualTo(ScoreCard.DEFAULT_SCORE);
         assertThat(iteration.getBadges()).containsOnly(Badge.BRONZE_MULTIPLICATOR);
     }
+	
+	@Test
+	public void processCorrectAttemptForLuckyBadgeTest() {
+		// given
+		Long userId = 1L;
+		String userAlias = "user"; 
+		Long attemptId = 29L;
+		int factorA = 42, factorB = 2, resultAttempt = 84;
+		boolean correct = true;
+		MultiplicationResultAttempt expected = new MultiplicationResultAttempt(
+				userAlias, factorA, factorB, resultAttempt, correct);
+		given(attemptClient.retrieveMultiplicationResultAttemptById(attemptId)).willReturn(expected);
+		
+		// when
+		GameStats iteration = gameService.newAttemptForUser(userId, attemptId, correct);
+		
+		// then
+		assertThat(iteration.getBadges()).containsOnly(Badge.LUCKY_NUMBER);
+	}
 	
 	@Test
     public void processWrongAttemptTest() {

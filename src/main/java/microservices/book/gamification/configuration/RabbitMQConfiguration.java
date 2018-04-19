@@ -16,7 +16,8 @@ import org.springframework.messaging.handler.annotation.support.DefaultMessageHa
 public class RabbitMQConfiguration implements RabbitListenerConfigurer{
 	
 	@Bean
-	public TopicExchange multiplicationExchange(@Value("${multiplication.exchange}") final String exchangeName) {
+	public TopicExchange multiplicationExchange(
+			@Value("${multiplication.exchange}") final String exchangeName) {
 		return new TopicExchange(exchangeName);
 	}
 	

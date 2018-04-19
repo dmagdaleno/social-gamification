@@ -2,6 +2,7 @@ package microservices.book.gamification.service;
 
 import static microservices.book.gamification.domain.Badge.BRONZE_MULTIPLICATOR;
 import static microservices.book.gamification.domain.Badge.GOLD_MULTIPLICATOR;
+import static microservices.book.gamification.domain.Badge.LUCKY_NUMBER;
 import static microservices.book.gamification.domain.Badge.SILVER_MULTIPLICATOR;
 
 import java.util.ArrayList;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import microservices.book.gamification.client.MultiplicationResultAttemptClient;
+import microservices.book.gamification.client.dto.MultiplicationResultAttempt;
 import microservices.book.gamification.domain.Badge;
 import microservices.book.gamification.domain.BadgeCard;
 import microservices.book.gamification.domain.GameStats;
@@ -24,14 +27,19 @@ import microservices.book.gamification.repository.ScoreCardRepository;
 public class GameServiceImpl implements GameService {
 	
 	
+	private static final int LUCKY_NUMBER_VALUE = 42;
+
 	private static final Logger log = LoggerFactory.getLogger(GameServiceImpl.class);
 	
 	private final BadgeCardRepository badgeCardRepo;
 	private final ScoreCardRepository scoreCardRepo;
+	private final MultiplicationResultAttemptClient attemptClient;
 
-	public GameServiceImpl(final BadgeCardRepository badgeCardRepo, final ScoreCardRepository scoreCardRepo) {
+	public GameServiceImpl(final BadgeCardRepository badgeCardRepo, final ScoreCardRepository scoreCardRepo,
+			final MultiplicationResultAttemptClient attemptClient) {
 		this.badgeCardRepo = badgeCardRepo;
 		this.scoreCardRepo = scoreCardRepo;
+		this.attemptClient = attemptClient;
 	}
 
 	@Override
@@ -68,7 +76,37 @@ public class GameServiceImpl implements GameService {
 			badgeCards.add(firstWonBadge);
 		}
 		
+		checkAndGiveBadgeBasedOnResultAttempt(badgeCardList, LUCKY_NUMBER, attemptId, userId)
+			.ifPresent(badgeCards::add);
+		
 		return badgeCards;
+	}
+
+	private Optional<BadgeCard> checkAndGiveBadgeBasedOnResultAttempt(List<BadgeCard> badgeCardList, 
+			Badge badge, long attemptId, Long userId) {
+		
+		if(containsBadge(badgeCardList, badge))
+			return Optional.empty();
+		
+		MultiplicationResultAttempt resultAttempt = getResultAttemptById(attemptId);
+		
+		if(resultAttempt.getMultiplicationFactorA() == LUCKY_NUMBER_VALUE
+				|| resultAttempt.getMultiplicationFactorB() == LUCKY_NUMBER_VALUE) {
+			return Optional.of(giveBadgeToUser(badge, userId));
+		}
+		
+		return Optional.empty();
+		
+	}
+
+	private MultiplicationResultAttempt getResultAttemptById(long attemptId) {
+		MultiplicationResultAttempt resultAttempt = 
+				attemptClient.retrieveMultiplicationResultAttemptById(attemptId);
+		
+		if(resultAttempt == null)
+			resultAttempt = new MultiplicationResultAttempt();
+		
+		return resultAttempt;
 	}
 
 	private BadgeCard giveBadgeToUser(Badge badge, Long userId) {
