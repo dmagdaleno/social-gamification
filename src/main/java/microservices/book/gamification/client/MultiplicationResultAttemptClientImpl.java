@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
 import microservices.book.gamification.client.dto.MultiplicationResultAttempt;
 
 @Component
@@ -24,6 +26,7 @@ public class MultiplicationResultAttemptClientImpl implements MultiplicationResu
 		this.multiplicationHost = multiplicationHost;
 	}
 
+	@HystrixCommand(fallbackMethod = "defaultResult")
 	@Override
 	public MultiplicationResultAttempt retrieveMultiplicationResultAttemptById(long multiplicationId) {
 		
@@ -39,4 +42,8 @@ public class MultiplicationResultAttemptClientImpl implements MultiplicationResu
 		return multiplicationResultAttempt;
 	}
 
+	//fallbackMethod
+	private MultiplicationResultAttempt defaultResult(long multiplicationResultAttemptId) {
+        return new MultiplicationResultAttempt("fakeAlias", 10, 10, 100, true);
+    }
 }

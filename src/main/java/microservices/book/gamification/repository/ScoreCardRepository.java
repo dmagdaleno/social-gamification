@@ -29,7 +29,7 @@ public interface ScoreCardRepository extends CrudRepository<ScoreCard, Long> {
 	 */
 	@Query("SELECT NEW microservices.book.gamification.domain.LeaderBoardRow(s.userId, SUM(s.score)) "
 		 + "FROM microservices.book.gamification.domain.ScoreCard s "
-	     + "GROUP BY s.userId ORDER BY s.userId DESC")
+	     + "GROUP BY s.userId ORDER BY s.score DESC")
 	List<LeaderBoardRow> findFirst10();
 	
 	/**
