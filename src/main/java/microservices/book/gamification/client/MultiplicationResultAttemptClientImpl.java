@@ -43,6 +43,7 @@ public class MultiplicationResultAttemptClientImpl implements MultiplicationResu
 	}
 
 	//fallbackMethod
+	@SuppressWarnings("unused")
 	private MultiplicationResultAttempt defaultResult(long multiplicationResultAttemptId) {
         return new MultiplicationResultAttempt("fakeAlias", 10, 10, 100, true);
     }
